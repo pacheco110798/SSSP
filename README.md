@@ -17,13 +17,11 @@ Los tres se basan en **relajar** aristas: si `dist[u] + w(u, v) < dist[v]`, se a
 
 La app web tiene las pestañas:
 
-- **Paso a paso**: Dijkstra con heap en un grafo no dirigido (heap, relajaciones, tabla de distancias; clic en un nodo para ver su camino).
-- **Bellman-Ford**: ronda por ronda en un grafo dirigido con arcos negativos, comparado con Dijkstra; botones para buscar un caso donde Dijkstra falla o uno con ciclo negativo.
-- **Johnson**: las 5 fases sobre el mismo grafo dirigido y la matriz de distancias entre todos los pares (clic en una celda para ver el camino).
-- **Arreglo vs heap**: tiempos y operaciones de Dijkstra (arreglo y heap) y Bellman-Ford en grafos dispersos y densos.
-- **Pruebas**: las pruebas unitarias.
+- **Dijkstra**: paso a paso con heap en un grafo no dirigido (heap, relajaciones, tabla de distancias; clic en un nodo para ver su camino).
+- **Bellman-Ford**: peso por peso en un grafo dirigido con pesos negativos, comparado con Dijkstra; botones para buscar un caso donde Dijkstra falla o uno con ciclo negativo.
+- **Johnson**: las 6 fases (0 a 5) sobre el mismo grafo dirigido, con Bellman-Ford desde q peso por peso, Dijkstra desde cada ciudad paso a paso y la matriz de distancias entre todos los pares.
 
-Cada reproductor tiene control de velocidad, y hay un interruptor de **modo noche** (ambos se recuerdan en el navegador).
+Cada pestaña se recorre con **◀ Anterior**, **Siguiente ▶** y una barra deslizante.
 
 ## Instalar
 

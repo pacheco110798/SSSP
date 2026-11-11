@@ -32,52 +32,6 @@
     --cond: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
     --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      color-scheme: dark;
-      --bg: #111318;
-      --surface: #1a1d23;
-      --ink: #eef0f4;
-      --ink-2: #b4bac6;
-      --muted: #8a91a0;
-      --line: #2e333c;
-      --grid: #23272e;
-      --memo: #3987e5;
-      --brute: #d95926;
-      --brute-tint: #4a2a1d;
-      --focus: #3987e5;
-      --iter: #34b58a;
-      --neg: #e8657b;
-      --hl: #c99a2e;
-      --violet: #9a82e6;
-      --teal: #33b7c7;
-      --bf: #2ea67f;
-      --fx: #b39cf2;
-      --fx-tint: #2c2540;
-    }
-  }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --bg: #111318;
-    --surface: #1a1d23;
-    --ink: #eef0f4;
-    --ink-2: #b4bac6;
-    --muted: #8a91a0;
-    --line: #2e333c;
-    --grid: #23272e;
-    --memo: #3987e5;
-    --brute: #d95926;
-    --brute-tint: #4a2a1d;
-    --focus: #3987e5;
-    --iter: #34b58a;
-    --neg: #e8657b;
-    --hl: #c99a2e;
-    --violet: #9a82e6;
-    --teal: #33b7c7;
-    --bf: #2ea67f;
-    --fx: #b39cf2;
-    --fx-tint: #2c2540;
-  }
 
   body {
     background: var(--bg);
@@ -89,6 +43,7 @@
     padding-block: 32px 64px;
     transition: background-color 0.2s, color 0.2s;
   }
+  [hidden] { display: none !important; }  /* que ningún estilo de panel muestre algo oculto */
   .wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 28px; }
   h1, h2 { font-family: var(--cond); font-weight: 600; text-wrap: balance; margin: 0; }
   h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.1; letter-spacing: -0.01em; }
@@ -222,6 +177,7 @@
   .table-wrap.tall { max-height: 430px; }
   .checks td, .checks th { padding: 6px 9px; }
   .checks tbody tr { cursor: default; }
+  .checks tr.now td.wrong { color: var(--neg); }
   .checks tr.hit td { background: color-mix(in srgb, var(--hl) 28%, transparent); }
   .checks tr.hit td.res { font-weight: 600; color: var(--ink); }
   .checks tr.skip td { color: var(--muted); }
@@ -267,6 +223,7 @@
   .heap-side { border-left: 1px solid var(--line); padding-left: 16px; display: grid; gap: 10px; align-content: start; }
   @media (max-width: 760px) { .heap-side { border-left: 0; border-top: 1px solid var(--line); padding: 12px 0 0; } }
   .heap-side[hidden] { display: none; }
+  .two[hidden] { display: none; }
   .heap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .heap-head h3 { margin: 0; font-family: var(--cond); font-size: 17px; font-weight: 600; }
   .heap-popped { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--ink-2); min-height: 28px; }
@@ -316,36 +273,13 @@
   .tabpanel[hidden] { display: none; }
 
   .topbar { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; }
-  .theme-switch {
-    display: inline-flex; align-items: center; gap: 8px; background: transparent; color: var(--ink-2);
-    border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px 4px 4px; font-size: 13px; font-weight: 500;
-  }
-  .theme-switch .track {
-    position: relative; width: 38px; height: 22px; border-radius: 99px; background: var(--grid);
-    border: 1px solid var(--line); transition: background-color 0.2s;
-  }
-  .theme-switch .thumb {
-    position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
-    background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); transition: transform 0.2s;
-    display: grid; place-items: center; font-size: 10px; line-height: 1;
-  }
-  .theme-switch[aria-checked="true"] .track { background: var(--memo); border-color: var(--memo); }
-  .theme-switch[aria-checked="true"] .thumb { transform: translateX(16px); }
 </style>
-<script>
-  // Aplica el tema guardado antes de pintar para que no parpadee
-  try { const t = localStorage.getItem("theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
-</script>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="topbar">
       <div class="author">Andrea Georgina Rodriguez Pacheco</div>
-      <button type="button" class="theme-switch" id="theme-toggle" role="switch" aria-checked="false">
-        <span class="track" aria-hidden="true"><span class="thumb" id="theme-icon">☀</span></span>
-        <span>Modo noche</span>
-      </button>
     </div>
     <div class="eyebrow">Caminos más cortos · Dijkstra · Bellman-Ford · Johnson</div>
     <h1>Caminos más cortos: Dijkstra, Bellman-Ford y Johnson</h1>
@@ -353,18 +287,16 @@
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Vistas">
-    <button type="button" role="tab" id="tab-btn-steps" aria-controls="tab-steps" aria-selected="true">Paso a paso</button>
+    <button type="button" role="tab" id="tab-btn-steps" aria-controls="tab-steps" aria-selected="true">Dijkstra</button>
     <button type="button" role="tab" id="tab-btn-bellman" aria-controls="tab-bellman" aria-selected="false">Bellman-Ford</button>
     <button type="button" role="tab" id="tab-btn-johnson" aria-controls="tab-johnson" aria-selected="false">Johnson</button>
-    <button type="button" role="tab" id="tab-btn-compare" aria-controls="tab-compare" aria-selected="false">Arreglo vs heap</button>
-    <button type="button" role="tab" id="tab-btn-tests" aria-controls="tab-tests" aria-selected="false">Pruebas</button>
   </nav>
 
   <section class="controls" id="dir-controls" aria-label="Grafo dirigido" hidden>
       <div class="field"><label for="bf-n">Nodos</label><input id="bf-n" type="number" min="3" max="26" value="5"></div>
       <div class="field"><label for="bf-neighbors">Vecinos</label><input id="bf-neighbors" type="number" min="1" max="4" value="2"></div>
       <div class="field"><label for="bf-seed">Semilla</label><input id="bf-seed" type="number" min="0" value="6"></div>
-      <div class="field"><label for="bf-source">Salir de</label><select id="bf-source"><option value="0">A</option></select></div>
+      <div class="field"><label for="bf-source">Origen</label><select id="bf-source"><option value="0">A</option></select></div>
       <div class="field"><label for="bf-neg">Pesos negativos</label><input id="bf-neg" type="number" min="0" max="8" value="1"></div>
       <button id="bf-apply" type="button">Generar grafo</button>
       <button id="bf-reseed" class="ghost" type="button">Otro grafo al azar</button>
@@ -378,13 +310,13 @@
       <div class="field"><label for="n">Nodos</label><input id="n" type="number" min="3" max="26" value="5"></div>
       <div class="field"><label for="neighbors">Vecinos</label><input id="neighbors" type="number" min="1" max="4" value="2"></div>
       <div class="field"><label for="seed">Semilla</label><input id="seed" type="number" min="0" value="0"></div>
-      <div class="field"><label for="source">Salir de</label><select id="source"><option value="0">A</option></select></div>
+      <div class="field"><label for="source">Origen</label><select id="source"><option value="0">A</option></select></div>
       <button id="apply" type="button">Generar grafo</button>
       <button id="reseed" class="ghost" type="button">Otro grafo al azar</button>
       <span class="status" id="status"></span>
     </section>
 
-    <p>Piensa en cada nodo como una ciudad y en cada línea como una carretera; el número es lo que cuesta recorrerla. Dijkstra encuentra la <b>ruta más barata</b> desde una ciudad a todas las demás con una sola regla: <b>visita siempre la ciudad pendiente más barata</b>. Como ningún costo es negativo, a esa ciudad ya no se puede llegar más barato: queda <b>terminada</b>. Después revisa sus vecinas por si pasar por ella les sale más barato. Pulsa <b>Siguiente ▶</b> para avanzar y haz clic en una ciudad para ver su ruta.</p>
+    <p><b>Dijkstra</b> calcula el camino más corto desde un nodo origen a todos los demás con pesos no negativos. En cada paso toma el nodo pendiente con menor distancia y lo marca como <b>terminado</b>: sin pesos negativos, su distancia ya no puede bajar. Después <b>relaja</b> sus aristas: si dist[u] + w(u, v) &lt; dist[v], actualiza dist[v].</p>
 
     <section class="summary" id="summary" aria-label="Resumen de la corrida"></section>
 
@@ -395,10 +327,10 @@
           <span><i class="dot" style="background:var(--iter);border-color:var(--iter)"></i>terminado</span>
           <span><i class="dot" style="border-color:var(--memo)"></i>pendiente</span>
           <span><i class="dot" style="border-color:var(--hl);border-width:3px"></i>visitando ahora</span>
-          <span><i class="sw" style="background:var(--hl);height:4px"></i>sale más barato</span>
+          <span><i class="sw" style="background:var(--hl);height:4px"></i>mejora</span>
           <span><i class="sw dash"></i>no mejora</span>
-          <span><i class="sw" style="background:var(--memo);height:4px"></i>mejor forma de llegar</span>
-          <span><i class="sw" style="background:var(--brute);height:4px"></i>ruta al destino</span>
+          <span><i class="sw" style="background:var(--memo);height:4px"></i>árbol de caminos</span>
+          <span><i class="sw" style="background:var(--brute);height:4px"></i>camino al destino</span>
         </div>
       </div>
       <div class="viz">
@@ -408,7 +340,7 @@
           <div class="heap-popped" id="heap-popped"></div>
           <div class="heap-tree" id="heap-tree"></div>
           <div class="heap-order"><span class="note">Saldrán en este orden:</span><div class="heap" id="heap"></div></div>
-          <p class="note">Es un árbol donde cada padre cuesta menos o igual que sus hijos, así que la más barata siempre está arriba (borde azul) y sale primero. Si una ciudad mejora se agrega otra vez; la copia vieja (tachada) se ignora cuando sale.</p>
+          <p class="note">Es un árbol donde cada padre cuesta menos o igual que sus hijos, así que la más barata siempre está arriba (borde azul) y sale primero. Si un nodo mejora se agrega otra vez; la copia vieja (tachada) se ignora cuando sale.</p>
         </aside>
       </div>
       <div class="explain" id="explain"></div>
@@ -437,7 +369,7 @@
         <h2>Costos</h2>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Ciudad</th><th>Costo</th><th>Llega desde</th><th class="l">Estado</th></tr></thead>
+            <thead><tr><th>Nodo</th><th>Costo</th><th>Previo</th><th class="l">Estado</th></tr></thead>
             <tbody id="dist-rows"></tbody>
           </table>
         </div>
@@ -457,7 +389,7 @@
 
   <div class="tabpanel" id="tab-bellman" role="tabpanel" aria-labelledby="tab-btn-bellman" hidden>
 
-    <p>Ahora las carreteras son de <b>un solo sentido</b> y algunos pesos son <b>negativos</b> (en rojo), como un descuento. Ahí Dijkstra puede equivocarse: da por terminada una ciudad antes de descubrir un descuento que la abarataría. <b>Bellman-Ford</b> no da nada por terminado: en cada <b>ronda</b> revisa <b>todos</b> los pesos y actualiza lo que salga más barato. Con n ciudades bastan n − 1 rondas, y para en cuanto una ronda no mejora nada. Si después de eso algo sigue bajando, hay un <b>ciclo negativo</b>: dar vueltas siempre abarata, así que no existe ruta más barata.</p>
+    <p>Grafo dirigido con algunos pesos <b>negativos</b> (en rojo). Con ellos Dijkstra puede fallar: marca un nodo como terminado antes de procesar un peso negativo que reduciría su distancia. <b>Bellman-Ford</b> relaja <b>todas</b> las aristas en cada <b>ronda</b>; n − 1 rondas bastan y se detiene antes si una ronda no cambia nada. Si después de n − 1 rondas una distancia aún baja, hay un <b>ciclo negativo</b> y no existe camino más corto.</p>
 
     <section class="summary" id="bf-summary" aria-label="Resumen de Bellman-Ford"></section>
     <div id="bf-callout"></div>
@@ -468,13 +400,23 @@
         <div class="legend">
           <span><i class="sw" style="background:var(--hl);height:4px"></i>peso revisado: baja</span>
           <span><i class="sw" style="background:repeating-linear-gradient(90deg, var(--memo) 0 4px, transparent 4px 7px);height:3px"></i>peso revisado: no mejora</span>
-          <span><i class="sw" style="background:var(--memo);height:4px"></i>mejor forma de llegar</span>
-          <span><i class="sw" style="background:var(--neg);height:3px"></i>costo negativo</span>
+          <span><i class="sw" style="background:var(--memo);height:4px"></i>árbol de caminos</span>
+          <span><i class="sw" style="background:var(--neg);height:3px"></i>peso negativo</span>
           <span><i class="sw" style="background:var(--brute);height:4px"></i>ciclo negativo</span>
           <span><i class="dot" style="border-color:var(--neg);border-style:dashed"></i>Dijkstra se equivoca</span>
         </div>
       </div>
-      <div class="graph" id="bf-graph"></div>
+      <div class="viz-j split" id="bf-viz">
+        <div class="graph" id="bf-graph"></div>
+        <aside class="bf-side" aria-label="Cálculo de Bellman-Ford">
+          <h3 class="sub-h">Cálculo de Bellman-Ford</h3>
+          <p class="note">Cada ronda revisa <b>todos</b> los pesos u → v en el mismo orden: <span class="fx">candidato = dist(u) + peso</span>; si es menor que dist(v), lo reemplaza.</p>
+          <div class="table-wrap"><table class="matrix compact" id="bf-rounds"></table></div>
+          <h3 class="sub-h" id="bf-round-title">Pesos revisados</h3>
+          <div class="relax" id="bf-relax"></div>
+          <div class="table-wrap tall"><table class="checks compact" id="bf-checks"></table></div>
+        </aside>
+      </div>
       <div class="explain" id="bf-explain"></div>
       <div class="stepper">
         <button type="button" class="ghost" id="bf-first" hidden aria-label="Inicio">⏮</button>
@@ -496,22 +438,12 @@
       </div>
     </section>
 
-    <section class="panel">
-      <h2>Cálculo ronda por ronda</h2>
-      <p class="note">Cada fila es el costo de cada ciudad al terminar esa ronda; la ronda en curso se va llenando peso por peso. En amarillo lo que bajó; con borde, lo que acaba de bajar.</p>
-      <div class="table-wrap"><table class="matrix" id="bf-rounds"></table></div>
-      <h3 class="sub-h" id="bf-round-title">Pesos revisados</h3>
-      <p class="note">Cada ronda revisa <b>todos</b> los pesos, siempre en el mismo orden: <span class="fx">candidato = costo(u) + peso(u → v)</span>. Si es menor que costo(v), lo reemplaza. Lo que baja al principio de una ronda ya se aprovecha más adelante en esa misma ronda.</p>
-      <div class="relax" id="bf-relax"></div>
-      <div class="table-wrap"><table class="checks" id="bf-checks"></table></div>
-    </section>
-
     <div>
       <section class="panel">
         <h2>Bellman-Ford contra Dijkstra</h2>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Ciudad</th><th>Bellman-Ford</th><th>Llega desde</th><th>Dijkstra</th><th class="l">¿Coinciden?</th></tr></thead>
+            <thead><tr><th>Nodo</th><th>Bellman-Ford</th><th>Previo</th><th>Dijkstra</th><th class="l">¿Coinciden?</th></tr></thead>
             <tbody id="bf-dist-rows"></tbody>
           </table>
         </div>
@@ -520,7 +452,7 @@
   </div>
 
   <div class="tabpanel" id="tab-johnson" role="tabpanel" aria-labelledby="tab-btn-johnson" hidden>
-    <p><b>Johnson</b> calcula la ruta más barata entre <b>todos los pares</b> de ciudades aunque haya costos negativos. La idea: Dijkstra es rápido pero no acepta negativos, así que primero se <b>ajustan los costos</b> para que ninguno sea negativo sin cambiar cuál ruta es la más barata, y luego se corre <b>Dijkstra desde cada ciudad</b>. Son 6 fases (0 a 5); avanza con <b>Siguiente ▶</b> o haz clic en una fase para saltar a ella.</p>
+    <p><b>Johnson</b> calcula los caminos más cortos entre <b>todos los pares</b> de nodos con pesos negativos. Repondera los pesos con w′(u, v) = w + h(u) − h(v) para que ninguno sea negativo sin cambiar los caminos más cortos, y luego corre <b>Dijkstra desde cada nodo</b>.</p>
 
     <section class="summary" id="j-summary" aria-label="Resumen de Johnson"></section>
     <div id="j-callout"></div>
@@ -545,7 +477,7 @@
           <div class="heap-popped" id="j-heap-popped"></div>
           <div class="heap-tree" id="j-heap-tree"></div>
           <div class="heap-order"><span class="note">Saldrán en este orden:</span><div class="heap" id="j-heap"></div></div>
-          <p class="note">Igual que en <b>Paso a paso</b>, pero con los pesos ajustados w′. Cada padre cuesta menos o igual que sus hijos, así que la más barata está arriba (borde azul) y sale primero; las copias viejas se tachan.</p>
+          <p class="note">Con los pesos ajustados w′. Cada padre cuesta menos o igual que sus hijos, así que la más barata está arriba (borde azul) y sale primero; las copias viejas se tachan.</p>
         </aside>
       </div>
       <div class="explain" id="j-explain"></div>
@@ -569,7 +501,31 @@
       </div>
     </section>
 
-    <div class="two">
+    <section class="panel" id="j-dist-panel" hidden>
+      <h2 id="j-dist-title">Costos</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nodo</th><th>Costo</th><th>Previo</th><th class="l">Estado</th></tr></thead>
+          <tbody id="j-dist-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="two" id="j-tables" hidden>
+      <section class="panel">
+        <h2>1. Dijkstra desde cada nodo: d′(u, v)</h2>
+        <p class="note">Resultado del último paso de cada Dijkstra de la fase 4, con los pesos ajustados w′. Fila = u (origen), columna = v.</p>
+        <div class="table-wrap">
+          <table class="matrix" id="j-naive"></table>
+        </div>
+      </section>
+      <section class="panel">
+        <h2 id="j-matrix-title">2. Johnson: d(u, v) con el ajuste deshecho</h2>
+        <p class="note" id="j-matrix-note"></p>
+        <div class="table-wrap">
+          <table class="matrix" id="j-matrix"></table>
+        </div>
+      </section>
       <section class="panel">
         <h2 id="j-rew-title">Ajuste de costos</h2>
         <p class="note">Peso ajustado de u → v: <span class="fx">w′ = w + h(u) − h(v)</span>. Nunca es negativo porque h ya es el costo más barato: llegar a v usando este peso no puede costar menos que h(v).</p>
@@ -580,76 +536,9 @@
           </table>
         </div>
       </section>
-      <section class="panel">
-        <h2 id="j-matrix-title">Costos entre todos los pares</h2>
-        <p class="note" id="j-matrix-note"></p>
-        <div class="table-wrap">
-          <table class="matrix" id="j-matrix"></table>
-        </div>
-      </section>
     </div>
   </div>
 
-  <div class="tabpanel" id="tab-compare" role="tabpanel" aria-labelledby="tab-btn-compare" hidden>
-    <section class="controls" aria-label="Comparación">
-      <div class="field"><label for="kind">Grafo</label>
-        <select id="kind"><option value="sparse">Disperso (≈ 5 aristas por nodo)</option><option value="dense">Denso (50 % de las aristas)</option></select></div>
-      <div class="field"><label for="maxN">V máximo</label>
-        <select id="maxN"><option>400</option><option>600</option><option>800</option><option selected>1000</option><option>1500</option><option>2000</option></select></div>
-      <div class="field"><label for="reps">Repeticiones</label><input id="reps" type="number" min="1" max="10" value="3"></div>
-      <button id="run-compare" type="button">Correr</button>
-      <span class="status" id="compare-status"></span>
-    </section>
-    <p>Las tres dan las mismas distancias (aquí todos los pesos son positivos). Las dos versiones de Dijkstra solo cambian cómo eligen el siguiente nodo. El <b>arreglo</b> revisa los V nodos en cada vuelta (V² en total). El <b>heap</b> saca el mínimo en O(log V), pero mete una entrada por cada mejora. En un grafo disperso el heap gana por mucho; en uno denso el trabajo dominante es recorrer las E ≈ V² aristas, que ambas hacen igual. <b>Bellman-Ford</b> relaja las E aristas en cada ronda: O(VE) en el peor caso, pero se detiene en cuanto una ronda no mejora nada, así que en grafos aleatorios basta con unas pocas rondas (columna <i>Rondas</i>).</p>
-
-    <section class="summary" id="compare-summary" aria-label="Resumen de la comparación"></section>
-
-    <section class="charts">
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Tiempo (mejor de las repeticiones)</h2>
-          <div class="legend">
-            <span><i class="sw" style="background:var(--brute)"></i>arreglo</span>
-            <span><i class="sw" style="background:var(--memo)"></i>heap</span>
-            <span><i class="sw" style="background:var(--bf)"></i>Bellman-Ford</span>
-          </div>
-        </div>
-        <div class="chart" id="time-chart"></div>
-      </section>
-      <section class="panel">
-        <div class="panel-head">
-          <h2>Operaciones</h2>
-          <div class="legend">
-            <span><i class="sw" style="background:var(--brute)"></i>arreglo: nodos revisados + relajaciones</span>
-            <span><i class="sw" style="background:var(--memo)"></i>heap: push + pop + relajaciones</span>
-            <span><i class="sw" style="background:var(--bf)"></i>Bellman-Ford: relajaciones</span>
-          </div>
-        </div>
-        <div class="chart" id="ops-chart"></div>
-      </section>
-    </section>
-
-    <section class="panel">
-      <h2>Resultados</h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>V</th><th>E</th><th>Arreglo</th><th>Heap</th><th>Bellman-Ford</th><th>Arreglo / heap</th><th>Nodos revisados</th><th>Push + pop</th><th>Entradas viejas</th><th>Rondas BF</th><th>Mismas dist.</th></tr></thead>
-          <tbody id="compare-rows"></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <div class="tabpanel" id="tab-tests" role="tabpanel" aria-labelledby="tab-btn-tests" hidden>
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Pruebas unitarias</h2>
-        <button id="run-tests" type="button" class="ghost">Ejecutar pruebas</button>
-      </div>
-      <p class="note" id="tests-note">Comprueba que arreglo y heap dan las mismas distancias que Bellman-Ford, que Johnson coincide con Bellman-Ford desde cada nodo y sus pesos reponderados nunca son negativos, que Bellman-Ford termina en a lo más n − 1 rondas y detecta ciclos negativos reales, que el camino reconstruido cuesta su distancia, que los nodos se fijan una vez y en orden de distancia, y que el conteo de operaciones es el esperado.</p>
-      <div class="tests-list" id="tests"></div>
-    </section>
-  </div>
 </div>
 
 <script>
@@ -729,7 +618,7 @@
       const ring = done ? "var(--iter)" : front ? "var(--memo)" : "var(--muted)";
       const cur = v === s.node ? `<circle cx="${x}" cy="${y}" r="${R + 7}" fill="none" stroke="var(--hl)" stroke-width="5"/>` : "";
       const tgt = v === target ? `<circle cx="${x}" cy="${y}" r="${v === s.node ? R + 13 : R + 7}" fill="none" stroke="var(--brute)" stroke-width="2.5" stroke-dasharray="4 3"/>` : "";
-      const d = v === data.source ? `salida · ${D(s.dist[v])}` : `costo ${D(s.dist[v])}`, dw = d.length * 7 + 12;
+      const d = v === data.source ? `origen · ${D(s.dist[v])}` : `dist ${D(s.dist[v])}`, dw = d.length * 7 + 12;
       return `<g class="node" data-v="${v}">${cur}${tgt}
         <circle cx="${x}" cy="${y}" r="${R}" fill="${fill}" stroke="${ring}" stroke-width="${front ? 3.5 : 2.5}"><title>${nm(v)}: costo ${D(s.dist[v])}</title></circle>
         <text class="nm" x="${x}" y="${y + 5.5}" text-anchor="middle" fill="${done ? "#fff" : "var(--ink)"}">${nm(v)}</text>
@@ -754,36 +643,36 @@
   // Narración del paso en palabras sencillas
   const story = (s) => dijkstraStory(s, { step, total: data.steps.length, source: data.source, target });
 
-  // Narración de un paso de Dijkstra (la usan la pestaña Paso a paso y la fase 4 de Johnson)
+  // Narración de un paso de Dijkstra (la usan la pestaña Dijkstra y la fase 4 de Johnson)
   function dijkstraStory(s, { step, total, source, target, prefix = "", startNote = "", endNote = "" }) {
     const src = nm(source);
     let head, items = [], foot = "";
     if (s.type === "start") {
-      head = `${prefix}Inicio: salimos de ${src}`;
-      items = [`Llegar a <b>${src}</b> cuesta <b>0</b>.`, `A las demás ciudades todavía no sabemos llegar: su costo es <b>∞</b>.`];
+      head = `${prefix}Inicio: origen ${src}`;
+      items = [`dist(<b>${src}</b>) = <b>0</b>.`, `Los demás nodos empiezan en <b>∞</b>.`];
       if (startNote) items.push(startNote);
-      foot = `<span class="rule">Regla: en cada paso se visita la ciudad pendiente más barata. Pulsa <b>Siguiente ▶</b>.</span>`;
+      foot = `<span class="rule">Regla: en cada paso se procesa el nodo pendiente con menor distancia.</span>`;
     } else if (s.type === "stale") {
-      head = `${prefix}Paso ${step} de ${total}: sale ${nm(s.node)} con costo ${s.d}… pero ya estaba terminada`;
-      items = [`Es una <b>copia vieja</b>: cuando ${nm(s.node)} mejoró a <b>${s.dist[s.node]}</b>, la entrada con costo ${s.d} se quedó en la lista. Se ignora.`];
+      head = `${prefix}Paso ${step} de ${total}: sale ${nm(s.node)} · ${s.d} (ya terminado)`;
+      items = [`<b>Copia vieja</b>: dist(${nm(s.node)}) ya es <b>${s.dist[s.node]}</b> &lt; ${s.d}. Se ignora.`];
     } else {
       const u = nm(s.node);
-      head = `${prefix}Paso ${step} de ${total}: visitamos ${u}`;
+      head = `${prefix}Paso ${step} de ${total}: se procesa ${u}`;
       items.push(step === 1
-        ? `${u} es la salida y su costo <b>0</b> es definitivo ✓.`
-        : `${u} es la pendiente más barata (costo <b>${s.d}</b>). Ningún otro camino puede llegar más barato, así que <b>queda terminada ✓</b>.`);
-      if (!s.relax.length) items.push(`${u} no tiene vecinas.`);
+        ? `${u} es el origen; dist = <b>0</b> es definitiva ✓.`
+        : `${u} es el pendiente con menor distancia (<b>${s.d}</b>). Sin pesos negativos no puede bajar más: <b>queda terminado ✓</b>.`);
+      if (!s.relax.length) items.push(`${u} no tiene vecinos.`);
       for (const r of s.relax) {
         const v = nm(r.to);
-        if (r.done) items.push(`<li class="no">${u} → ${v}: ${v} ya está terminada, no se revisa.</li>`);
-        else if (r.better) items.push(`${u} → ${v}: <span class="fx">${s.d} + ${r.w} = <b>${r.new}</b></span>, ${r.old === null ? "antes no sabíamos llegar a " + v : `más barato que ${r.old}`} → <b>${v} ahora cuesta ${r.new}</b> (llegando desde ${u}).`);
-        else items.push(`<li class="no">${u} → ${v}: <span class="fx">${s.d} + ${r.w} = ${r.new}</span>, no mejora el costo actual de ${v} (${D(r.old)}).</li>`);
+        if (r.done) items.push(`<li class="no">${u} → ${v}: ${v} ya está terminado, no se revisa.</li>`);
+        else if (r.better) items.push(`${u} → ${v}: <span class="fx">${s.d} + ${r.w} = <b>${r.new}</b> &lt; ${D(r.old)}</span> → <b>dist(${v}) = ${r.new}</b>, previo ${u}.`);
+        else items.push(`<li class="no">${u} → ${v}: <span class="fx">${s.d} + ${r.w} = ${r.new} ≥ ${D(r.old)}</span> → sin cambio.</li>`);
       }
     }
-    if (step === total) foot = `<b>Fin:</b> ya no quedan pendientes; todos los costos son definitivos.${endNote}`;
+    if (step === total) foot = `<b>Fin:</b> no quedan pendientes; todas las distancias son definitivas.${endNote}`;
     if (target !== null && s.type !== "start") {
-      foot += s.dist[target] === null ? ` Aún no sabemos llegar a <b>${nm(target)}</b>.`
-        : ` Ruta más barata${s.visited[target] ? "" : " por ahora"} a <b>${nm(target)}</b>: ${route(s.prev, target)} (costo <b>${s.dist[target]}</b>).`;
+      foot += s.dist[target] === null ? ` dist(<b>${nm(target)}</b>) = ∞ por ahora.`
+        : ` Camino más corto${s.visited[target] ? "" : " por ahora"} a <b>${nm(target)}</b>: ${route(s.prev, target)} (dist <b>${s.dist[target]}</b>).`;
     }
     const li = items.map((x) => x.startsWith("<li") ? x : `<li>${x}</li>`).join("");
     return `<div class="story"><div class="story-h">${head}</div><ul>${li}</ul>${foot ? `<div>${foot}</div>` : ""}</div>`;
@@ -799,7 +688,7 @@
 
     $(`${p}heap-count`).textContent = `${h.length} en la lista`;
     $(`${p}heap-popped`).innerHTML = s.node === null
-      ? `<span>Al inicio solo está la salida.</span>`
+      ? `<span>Al inicio solo está el origen.</span>`
       : `<span>Acaba de salir:</span><span class="chip popped ${s.type === "stale" ? "stale" : ""}">${nm(s.node)} · ${s.d}</span>${s.type === "stale" ? `<span class="note">copia vieja, se ignora</span>` : ""}`;
 
     // Árbol binario: el elemento i tiene hijos 2i + 1 y 2i + 2
@@ -837,11 +726,14 @@
     }).join("") || `<span class="note">ninguna</span>`;
   }
 
-  function drawDist(s) {
+  const drawDist = (s) => renderDist(s, "dist-rows", data.source);
+
+  // Tabla Nodo · Costo · Previo · Estado de un paso de Dijkstra (pestaña Dijkstra y fase 4 de Johnson)
+  function renderDist(s, id, source) {
     const changed = new Set(s.relax.filter((r) => r.better).map((r) => r.to));
-    $("dist-rows").innerHTML = s.dist.map((d, v) => {
-      const st = s.visited[v] ? ["done", "terminada ✓"] : d !== null ? ["front", "pendiente"] : ["none", "sin descubrir"];
-      return `<tr class="${v === s.node ? "current" : ""}"><td>${nm(v)}${v === data.source ? " (salida)" : ""}</td><td class="${changed.has(v) ? "changed" : ""}">${D(d)}</td>`
+    $(id).innerHTML = s.dist.map((d, v) => {
+      const st = s.visited[v] ? ["done", "terminado ✓"] : d !== null ? ["front", "pendiente"] : ["none", "sin descubrir"];
+      return `<tr class="${v === s.node ? "current" : ""}"><td>${nm(v)}${v === source ? " (origen)" : ""}</td><td class="${changed.has(v) ? "changed" : ""}">${D(d)}</td>`
         + `<td class="${changed.has(v) ? "changed" : ""}">${nm(s.prev[v])}</td><td class="l"><span class="state ${st[0]}">${st[1]}</span></td></tr>`;
     }).join("");
   }
@@ -884,11 +776,11 @@
   function summary() {
     const last = stateAt(data.steps.length);
     $("summary").innerHTML =
-      stat("Grafo original", `${data.n} · ${data.edges.length}`, "ciudades · carreteras")
-      + stat("Pasos", data.steps.length, data.stale ? `${data.n} visitas + ${data.stale} copias viejas ignoradas` : `una visita por ciudad`)
+      stat("Grafo original", `${data.n} · ${data.edges.length}`, "nodos · aristas")
+      + stat("Pasos", data.steps.length, data.stale ? `${data.n} visitas + ${data.stale} copias viejas ignoradas` : `una visita por nodo`)
       + (target !== null
-        ? stat(`Ruta más barata a ${nm(target)}`, D(last.dist[target]), route(last.prev, target))
-        : stat("Ruta", "–", "haz clic en una ciudad del grafo"));
+        ? stat(`Camino más corto a ${nm(target)}`, D(last.dist[target]), route(last.prev, target))
+        : stat("Camino", "–", "sin destino elegido"));
   }
 
   async function loadRun() {
@@ -907,15 +799,15 @@
     $("status").textContent = "";
     data.pos = spread(data.pos);
     $("source").value = data.source;
-    // Destino inicial: la ciudad más lejana, para que la ruta se vea desde el principio
+    // Destino inicial: el nodo más lejano, para que su camino se vea desde el principio
     const last = data.steps.at(-1).dist;
     if (target === null || target >= data.n || target === data.source) target = last.indexOf(Math.max(...last.filter((d) => d !== null)));
-    $("graph-title").textContent = `Rutas más baratas desde ${nm(data.source)}`;
+    $("graph-title").textContent = `Caminos más cortos desde ${nm(data.source)}`;
     $("slider").max = data.steps.length;
     $("step-rows").innerHTML = data.steps.map((s, i) => {
       const better = s.relax.filter((r) => r.better);
       return `<tr data-step="${i + 1}"><td>${i + 1}</td><td class="l">${nm(s.node)} (costo ${s.d})</td>`
-        + `<td class="l">${s.type === "stale" ? "copia vieja, se ignora" : `${nm(s.node)} queda terminada`}</td>`
+        + `<td class="l">${s.type === "stale" ? "copia vieja, se ignora" : `${nm(s.node)} queda terminado`}</td>`
         + `<td class="l">${better.map((r) => `${nm(r.to)}: ${D(r.old)} → ${r.new}`).join(", ") || "–"}</td><td>${s.heap.length}</td></tr>`;
     }).join("");
     summary();
@@ -1071,7 +963,7 @@
     return { dist, prev };
   }
 
-  // Valores de cada ciudad al terminar cada ronda; la ronda en curso muestra sus valores en vivo
+  // Valores de cada nodo al terminar cada ronda; la ronda en curso muestra sus valores en vivo
   function roundsTable(initial, rounds, upto, n, label = "Ronda", live = null, liveDone = true, just = null) {
     const all = [initial, ...rounds.slice(0, upto)];
     if (live) all[upto] = live;
@@ -1124,13 +1016,13 @@
     const u = name(c.u), v = name(c.v), N = rounds[round].checks.length, info = stepInfo(rounds[round].checks, check);
     const head = `${extraHead}Ronda ${round + 1}, peso ${check + 1} de ${N}: ${u} → ${v}`;
     const items = [];
-    const skipNote = (k) => `${k === 1 ? "1 peso sale" : `${k} pesos salen`} de una ciudad con ${L} = ∞ y se salta${k === 1 ? "" : "n"} (en gris en la tabla)`;
+    const skipNote = (k) => `${k === 1 ? "1 peso sale" : `${k} pesos salen`} de un nodo con ${L} = ∞ y se salta${k === 1 ? "" : "n"} (en gris en la tabla)`;
     if (info.skippedBefore) items.push(`<span class="rule">Antes de este, ${skipNote(info.skippedBefore)}.</span>`);
     {
       items.push(`<span class="fx">candidato = ${L}(${u}) + peso = ${c.du} + ${c.w < 0 ? `(${c.w})` : c.w} = <b>${c.new}</b></span>`);
       items.push(c.better
-        ? `<span class="fx">${c.new} &lt; ${L}(${v}) = ${D(c.old)}</span> → <b>${L}(${v}) baja a ${c.new}</b>${withParent ? `, llegando desde ${u}` : ""}.`
-        : `<span class="fx">${c.new} ≥ ${L}(${v}) = ${D(c.old)}</span> → no mejora; ${L}(${v}) se queda en ${D(c.old)}.`);
+        ? `<span class="fx">${c.new} &lt; ${L}(${v}) = ${D(c.old)}</span> → <b>${L}(${v}) baja a ${c.new}</b>${withParent ? `, previo ${u}` : ""}.`
+        : `<span class="fx">${c.new} ≥ ${L}(${v}) = ${D(c.old)}</span> → sin cambio.`);
     }
     if (info.skippedAfter) items.push(`<span class="rule">Después de este, ${skipNote(info.skippedAfter)}.</span>`);
     let foot = "";
@@ -1171,7 +1063,7 @@
       },
       nodeStyle: (v) => ({
         ring: s.dist[v] === null ? "var(--muted)" : "var(--memo)",
-        badge: v === bf.source ? `salida · ${D(s.dist[v])}` : `costo ${D(s.dist[v])}`,
+        badge: v === bf.source ? `origen · ${D(s.dist[v])}` : `dist ${D(s.dist[v])}`,
         badgeHl: c && c.better && v === c.v,
         sel: c && v === c.v ? (c.better ? "hl" : "memo") : c && v === c.u ? "memo" : detect && bf.negativeCycle.includes(v) ? "brute" : null,
         wrong: wrong.has(v) && final,
@@ -1182,11 +1074,11 @@
     const maxR = bf.n - 1;
     if (st.init) {
       $("bf-explain").innerHTML = `<div class="story"><div class="story-h">Inicio</div><ul><li>Salimos de <b>${nm(bf.source)}</b> con costo 0; a las demás todavía no se sabe llegar (∞).</li>`
-        + `<li>Cada ronda revisa los <b>${bf.arcs.length}</b> pesos uno por uno, siempre en el mismo orden; harán falta a lo más ${maxR} rondas.</li></ul><div><span class="rule">Pulsa <b>Siguiente ▶</b> para revisar el primer peso.</span></div></div>`;
+        + `<li>Cada ronda revisa los <b>${bf.arcs.length}</b> pesos uno por uno, siempre en el mismo orden; harán falta a lo más ${maxR} rondas.</li></ul></div>`;
     } else if (detect) {
-      $("bf-explain").innerHTML = `<div class="story"><div class="story-h">Ronda extra de comprobación: ¡ciclo negativo!</div><ul><li>Ya pasaron las ${maxR} rondas y algo <b>todavía se abarata</b>.</li><li>Eso solo pasa con un ciclo negativo: ${cyc.path} suma <b>${cyc.sum}</b>, así que cada vuelta sale más barata. No existe ruta más barata.</li></ul></div>`;
+      $("bf-explain").innerHTML = `<div class="story"><div class="story-h">Ronda extra de comprobación: ¡ciclo negativo!</div><ul><li>Después de ${maxR} rondas una distancia <b>todavía baja</b>.</li><li>Ciclo negativo: ${cyc.path} suma <b>${cyc.sum}</b>; cada vuelta reduce el costo, así que no existe camino más corto.</li></ul></div>`;
     } else {
-      $("bf-explain").innerHTML = edgeStory({ c, round: st.round, check: st.check, rounds: bf.rounds, L: "costo", name: nm, withParent: true,
+      $("bf-explain").innerHTML = edgeStory({ c, round: st.round, check: st.check, rounds: bf.rounds, L: "dist", name: nm, withParent: true,
         lastRoundNote: st.round === maxR - 1 && bf.negativeCycle ? " Pero ya era la última ronda permitida: sospechoso." : "" });
     }
 
@@ -1204,14 +1096,14 @@
     } else {
       const checks = bf.rounds[st.round].checks;
       $("bf-relax").innerHTML = tally(checks.slice(0, stepInfo(checks, st.check).reveal + 1));
-      $("bf-checks").innerHTML = checksTable(checks, nm, "costo", st.check);
+      $("bf-checks").innerHTML = checksTable(checks, nm, "dist", st.check, true);
       scrollToNow($("bf-checks"));
     }
 
     const last = bf.rounds.at(-1).dist;
     $("bf-dist-rows").innerHTML = s.dist.map((d, v) => {
       const ok = bf.negativeCycle ? null : bf.dijkstra[v] === last[v], ch = c && c.better && c.v === v ? "changed" : "";
-      return `<tr><td>${nm(v)}${v === bf.source ? " (salida)" : ""}</td><td class="${ch}">${D(d)}</td><td class="${ch}">${nm(s.prev[v])}</td>`
+      return `<tr><td>${nm(v)}${v === bf.source ? " (origen)" : ""}</td><td class="${ch}">${D(d)}</td><td class="${ch}">${nm(s.prev[v])}</td>`
         + `<td class="${ok === false ? "wrong" : ""}">${D(bf.dijkstra[v])}</td><td class="l">${ok === null ? "–" : ok ? `<span class="state done">sí</span>` : `<span class="state" style="color:var(--neg)">no (real ${D(last[v])})</span>`}</td></tr>`;
     }).join("");
   }
@@ -1234,17 +1126,17 @@
     const cyc = bf.negativeCycle ? cycleText(bf.negativeCycle, bf.arcs) : null;
     $("bf-title").textContent = `Bellman-Ford desde ${nm(bf.source)}`;
     $("bf-summary").innerHTML =
-      stat("Grafo original", `${bf.n} · ${bf.arcs.length}`, `ciudades · pesos (${negs} negativo${negs === 1 ? "" : "s"})`)
+      stat("Grafo original", `${bf.n} · ${bf.arcs.length}`, `nodos · pesos (${negs} negativo${negs === 1 ? "" : "s"})`)
       + stat("Rondas", cyc ? `${bf.n - 1} + 1` : bf.rounds.length, `${cyc ? "todas las permitidas más la de verificación" : `de ${bf.n - 1} posibles${bf.rounds.length < bf.n - 1 ? " (se detuvo antes)" : ""}`} · ${bfTotal()} pasos`)
       + stat("Abaratamientos", improved, `de ${fmtN(bf.rounds.length * bf.arcs.length)} pesos revisados`)
-      + stat("Dijkstra en este grafo", cyc ? "–" : bf.wrong.length ? `<span class="bad">✗ ${bf.wrong.length}</span>` : `<span class="ok">✓</span>`, cyc ? "no aplica: hay ciclo negativo" : bf.wrong.length ? `ciudades con costo equivocado` : "da los mismos costos");
+      + stat("Dijkstra en este grafo", cyc ? "–" : bf.wrong.length ? `<span class="bad">✗ ${bf.wrong.length}</span>` : `<span class="ok">✓</span>`, cyc ? "no aplica: hay ciclo negativo" : bf.wrong.length ? `nodos con distancia equivocada` : "da los mismos costos");
     const ex = bf.wrong[0], last = bf.rounds.at(-1);
     $("bf-callout").innerHTML = cyc
-      ? `<div class="callout"><b>Ciclo negativo:</b> ${cyc.path} suma ${cyc.sum}. Dar vueltas siempre abarata, así que no hay ruta más barata. Bellman-Ford lo detecta porque después de ${bf.n - 1} rondas algo sigue bajando.</div>`
+      ? `<div class="callout"><b>Ciclo negativo:</b> ${cyc.path} suma ${cyc.sum}; cada vuelta reduce el costo, así que no existe camino más corto. Bellman-Ford lo detecta porque después de ${bf.n - 1} rondas una distancia sigue bajando.</div>`
       : bf.wrong.length
-      ? `<div class="callout"><b>Aquí Dijkstra se equivoca</b> en ${bf.wrong.map((v) => `<b>${nm(v)}</b>`).join(", ")}. Por ejemplo, Dijkstra dice que llegar a ${nm(ex)} cuesta <b>${D(bf.dijkstra[ex])}</b>, pero la ruta ${chainTo(last.prev, ex, bf.n).map(nm).join(" → ")} cuesta <b>${last.dist[ex]}</b>. Dijkstra dio una ciudad por terminada antes de ver el descuento (peso negativo, en rojo) y ya no la volvió a revisar.</div>`
+      ? `<div class="callout"><b>Aquí Dijkstra se equivoca</b> en ${bf.wrong.map((v) => `<b>${nm(v)}</b>`).join(", ")}. Por ejemplo, Dijkstra da dist(${nm(ex)}) = <b>${D(bf.dijkstra[ex])}</b>, pero el camino ${chainTo(last.prev, ex, bf.n).map(nm).join(" → ")} cuesta <b>${last.dist[ex]}</b>. Dijkstra marcó un nodo como terminado antes de procesar un peso negativo (en rojo) y no lo volvió a revisar.</div>`
       : negs
-      ? `<div class="callout good">En este grafo <b>Dijkstra acierta</b> aunque hay costos negativos; no siempre pasa. Usa <i>Buscar caso donde Dijkstra falla</i>.</div>`
+      ? `<div class="callout good">En este grafo <b>Dijkstra acierta</b> aunque hay costos negativos; no siempre pasa.</div>`
       : `<div class="callout good">Sin costos negativos <b>Dijkstra y Bellman-Ford coinciden</b>; Bellman-Ford solo es más lento.</div>`;
     bfPlayer.go(0);
   }
@@ -1256,7 +1148,7 @@
     { name: "Agregar q" },
     { name: "Bellman-Ford desde q" },
     { name: "Ajustar costos" },
-    { name: "Dijkstra desde cada ciudad" },
+    { name: "Dijkstra desde cada nodo" },
     { name: "Deshacer el ajuste" },
   ];
   const jTotal = () => Math.max(0, jSteps.length - 1);
@@ -1350,10 +1242,10 @@
         }
         if (ph === 4) {
           const done = dS.visited[v], front = !done && dS.dist[v] !== null;
-          return { badge: v === jSrc ? `salida · ${D(dS.dist[v])}` : `costo ${D(dS.dist[v])}`, fill: done ? "var(--iter)" : null,
+          return { badge: v === jSrc ? `origen · ${D(dS.dist[v])}` : `dist ${D(dS.dist[v])}`, fill: done ? "var(--iter)" : null,
                    ring: done ? "var(--iter)" : front ? "var(--memo)" : "var(--muted)", sel: v === dS.node ? "hl" : v === jTgt ? "brute" : null };
         }
-        if (ph === 5) return { badge: `costo ${D(jd.dist[jSrc][v])}`, sel: v === jSrc ? "hl" : v === jTgt ? "brute" : null, ring: "var(--memo)", wrong: wrongRow.has(v) };
+        if (ph === 5) return { badge: `dist ${D(jd.dist[jSrc][v])}`, sel: v === jSrc ? "hl" : v === jTgt ? "brute" : null, ring: "var(--memo)", wrong: wrongRow.has(v) };
         return {};
       },
     });
@@ -1364,7 +1256,7 @@
         const st = now ? (chk.better ? { color: "hl", width: 5 } : { color: "memo", width: 3.5, dash: true }) : { color: "muted", width: 1, op: 0.5, dash: true };
         return g.arrow(qx, qy, x, y, st, `q → ${nm(v)}, peso 0`);
       }).join("");
-      qn = `<circle cx="${qx}" cy="${qy}" r="19" fill="var(--ink-2)" stroke="var(--ink-2)" stroke-width="2"><title>ciudad auxiliar q: peso 0 hacia cada ciudad</title></circle><text x="${qx}" y="${qy + 5.5}" text-anchor="middle" style="font-family:var(--sans);font-size:16px;font-weight:600" fill="var(--surface)">q</text>`
+      qn = `<circle cx="${qx}" cy="${qy}" r="19" fill="var(--ink-2)" stroke="var(--ink-2)" stroke-width="2"><title>nodo auxiliar q: peso 0 hacia cada nodo</title></circle><text x="${qx}" y="${qy + 5.5}" text-anchor="middle" style="font-family:var(--sans);font-size:16px;font-weight:600" fill="var(--surface)">q</text>`
         + `<text class="dl" x="${qx + 28}" y="${qy + 4}" fill="var(--muted)">peso 0 hacia todas</text>`;
     }
     $("j-graph").innerHTML = g.svg(qa, qn);
@@ -1375,13 +1267,21 @@
     jMatrix(cur);
     jBfPanel(cur);
     jHeapPanel(cur, dS);
+    $("j-tables").hidden = cur.phase !== 5;  // matrices y "Ajuste de costos" solo al final
+    if (cur.phase === 5) jNaive();
   }
 
-  // Fase 4: lista de pendientes al lado del grafo, igual que en Paso a paso
+  // Fase 4: lista de pendientes al lado del grafo, igual que en la pestaña Dijkstra
   function jHeapPanel(cur, dS) {
     const show = cur.phase === 4;
     $("j-heap-panel").hidden = !show;
-    if (show) { $("j-viz").classList.add("split"); renderHeap(dS, "j-"); }
+    $("j-dist-panel").hidden = !show;
+    if (show) {
+      $("j-viz").classList.add("split");
+      renderHeap(dS, "j-");
+      $("j-dist-title").textContent = `Costos desde ${nm(cur.src)} (pesos ajustados w′)`;
+      renderDist(dS, "j-dist-rows", cur.src);
+    }
   }
 
   // Detalle de Bellman-Ford desde q: h por ronda y cada flecha revisada
@@ -1399,7 +1299,7 @@
     const name = (v) => v === null ? "q" : nm(v);
     if (ph === 1) {
       $("j-checks-title").textContent = "Pesos revisados";
-      $("j-checks").innerHTML = `<tbody><tr><td class="l">Al inicio h(q) = 0 y las demás en ∞. Pulsa <b>Siguiente ▶</b> para la ronda 1.</td></tr></tbody>`;
+      $("j-checks").innerHTML = `<tbody><tr><td class="l">Al inicio h(q) = 0 y las demás en ∞.</td></tr></tbody>`;
     } else if (cur.detect) {
       $("j-checks-title").textContent = "Después de todas las rondas algo sigue bajando";
       $("j-checks").innerHTML = `<tbody><tr><td class="l">Eso solo pasa con un ciclo negativo; está marcado en el grafo.</td></tr></tbody>`;
@@ -1413,12 +1313,12 @@
 
   function jLegend(ph, cur) {
     const sw = (c, t, dash) => `<span><i class="sw${dash ? " dash" : ""}" style="${dash ? "" : `background:var(--${c});`}height:4px"></i>${t}</span>`;
-    if (ph <= 1) return sw("neg", "costo negativo") + (ph === 1 ? sw("muted", "peso nuevo 0", true) : "");
+    if (ph <= 1) return sw("neg", "peso negativo") + (ph === 1 ? sw("muted", "peso nuevo 0", true) : "");
     if (ph === 2) return cur.detect ? sw("brute", "ciclo negativo") : sw("hl", "peso revisado: baja") + `<span><i class="sw" style="background:repeating-linear-gradient(90deg, var(--memo) 0 4px, transparent 4px 7px);height:3px"></i>peso revisado: no mejora</span>` + sw("neg", "peso negativo");
     if (ph === 3) return sw("hl", "peso que se ajusta ahora") + sw("memo", "ya ajustado");
-    if (ph === 4) return `<span><i class="dot" style="background:var(--iter);border-color:var(--iter)"></i>terminada</span><span><i class="dot" style="border-color:var(--memo)"></i>pendiente</span><span><i class="dot" style="border-color:var(--hl);border-width:3px"></i>visitando ahora</span>`
-      + sw("hl", "sale más barato") + sw("muted", "no mejora", true) + sw("memo", "mejor forma de llegar") + sw("brute", "ruta al destino");
-    return sw("memo", "mejor forma de llegar") + sw("brute", "ruta elegida") + (ph === 5 ? `<span><i class="dot" style="border-color:var(--neg);border-style:dashed"></i>Dijkstra sin ajustar se equivoca</span>` : "");
+    if (ph === 4) return `<span><i class="dot" style="background:var(--iter);border-color:var(--iter)"></i>terminado</span><span><i class="dot" style="border-color:var(--memo)"></i>pendiente</span><span><i class="dot" style="border-color:var(--hl);border-width:3px"></i>visitando ahora</span>`
+      + sw("hl", "mejora") + sw("muted", "no mejora", true) + sw("memo", "árbol de caminos") + sw("brute", "camino al destino");
+    return sw("memo", "árbol de caminos") + sw("brute", "camino elegido") + (ph === 5 ? `<span><i class="dot" style="border-color:var(--neg);border-style:dashed"></i>Dijkstra sin ajustar se equivoca</span>` : "");
   }
 
   // Narración de cada paso
@@ -1429,16 +1329,15 @@
       const negs = jd.arcs.filter((a) => a[2] < 0);
       head = "Fase 0: el grafo original";
       items = [`Hay <b>${negs.length}</b> peso${negs.length === 1 ? "" : "s"} negativo${negs.length === 1 ? "" : "s"}: ${negs.map(([u, v, w]) => `${nm(u)} → ${nm(v)} (${w})`).join(", ") || "ninguna"}.`,
-               `Queremos la ruta más barata entre <b>todos los pares</b> de ciudades. Dijkstra sería rápido, pero con negativos puede equivocarse.`];
-      foot = `<span class="rule">Plan: ajustar los costos para que ninguno sea negativo, sin cambiar cuál ruta es la más barata.</span>`;
+               `Se buscan los caminos más cortos entre <b>todos los pares</b>. Con pesos negativos Dijkstra puede fallar.`];
     } else if (ph === 1) {
-      head = "Fase 1: agregar una ciudad auxiliar q";
-      items = [`Se agrega <b>q</b> con un peso <b>0</b> hacia cada ciudad.`,
-               `Así se puede medir, desde un mismo punto, qué tan "abajo" queda cada ciudad. q no crea rutas nuevas entre las ciudades originales porque nada llega a q.`];
+      head = "Fase 1: agregar un nodo auxiliar q";
+      items = [`Se agrega <b>q</b> con un peso <b>0</b> hacia cada nodo.`,
+               `Ningún peso entra a q, así que no crea caminos nuevos entre los nodos originales.`];
     } else if (ph === 2 && cur.detect) {
       const cyc = cycleText(jd.negativeCycle, jd.arcs);
       head = "Fase 2: ¡ciclo negativo!";
-      items = [`Después de todas las rondas algo sigue bajando: el ciclo ${cyc.path} suma <b>${cyc.sum}</b>.`, `Cada vuelta abarata la ruta, así que no existe ruta más barata. <b>Johnson se detiene aquí.</b>`];
+      items = [`Después de todas las rondas algo sigue bajando: el ciclo ${cyc.path} suma <b>${cyc.sum}</b>.`, `Cada vuelta reduce el costo, así que no existe camino más corto. <b>Johnson se detiene.</b>`];
     } else if (ph === 2) {
       return edgeStory({ c: jd.hRounds[cur.round].checks[cur.check], round: cur.round, check: cur.check, rounds: jd.hRounds,
         L: "h", name: (v) => v === null ? "q" : nm(v), extraHead: "Fase 2 · " });
@@ -1447,20 +1346,19 @@
       head = `Fase 3: ajustar el peso ${nm(u)} → ${nm(v)}`;
       items = [`<span class="fx">w′ = w + h(${nm(u)}) − h(${nm(v)}) = ${w} + (${h[u]}) − (${h[v]}) = <b>${w2}</b></span>.`,
                w2 === w ? `No cambia.` : w < 0 ? `Era negativa y ahora vale <b>${w2} ≥ 0</b>.` : `Cambia de ${w} a ${w2}, pero sigue sin ser negativa.`];
-      if (cur.arc === jd.arcs.length - 1) foot = `Listo: <b>ningún peso es negativo</b>. En cualquier ruta los h de en medio se cancelan, así que la ruta más barata sigue siendo la misma; solo cambia su costo en h(inicio) − h(fin).`;
+      if (cur.arc === jd.arcs.length - 1) foot = `<b>Ningún peso es negativo.</b> En cualquier camino los h intermedios se cancelan: el costo solo cambia en h(inicio) − h(fin), así que los caminos más cortos son los mismos.`;
     } else if (ph === 4) {
       const src = cur.src, total = jd.dSteps[src].length;
       return dijkstraStory(jDState(src, cur.k), { step: cur.k, total, source: src, target: jTgt,
         prefix: `Fase 4 · Dijkstra desde ${nm(src)} (${src + 1} de ${n}) · `,
         startNote: `Se usan los <b>pesos ajustados w′</b> de la fase 3: ninguno es negativo, así que Dijkstra funciona.`,
-        endNote: ` Se anota la fila ${nm(src)} de la matriz${src === n - 1 ? "; ya se corrió Dijkstra desde las " + n + " ciudades." : "; sigue Dijkstra desde " + nm(src + 1) + "."}` });
+        endNote: src === n - 1 ? ` Ya se corrió Dijkstra desde los ${n} nodos.` : ` Sigue Dijkstra desde ${nm(src + 1)}.` });
     } else {
       const s = jSrc, t = jTgt;
       head = "Fase 5: deshacer el ajuste";
       items = [`<span class="fx">costo real(u, v) = costo ajustado − h(u) + h(v)</span>`];
-      if (t !== null && jd.dist[s][t] !== null) items.push(`Ejemplo de ${nm(s)} a ${nm(t)}: <span class="fx">${jd.dprime[s][t]} − (${jd.h[s]}) + (${jd.h[t]}) = <b>${jd.dist[s][t]}</b></span>, por la ruta ${chainTo(jd.prev[s], t, n).map(nm).join(" → ")}.`);
+      if (t !== null && jd.dist[s][t] !== null) items.push(`Ejemplo de ${nm(s)} a ${nm(t)}: <span class="fx">${jd.dprime[s][t]} − (${jd.h[s]}) + (${jd.h[t]}) = <b>${jd.dist[s][t]}</b></span>, por el camino ${chainTo(jd.prev[s], t, n).map(nm).join(" → ")}.`);
       items.push(jd.wrongPairs ? `Dijkstra sin ajustar se habría equivocado en <b>${jd.wrongPairs}</b> de ${n * n} pares (en rojo en la matriz).` : `Aquí Dijkstra sin ajustar no se habría equivocado, pero con negativos no está garantizado.`);
-      foot = `<span class="rule">Haz clic en cualquier celda de la matriz para ver otra ruta.</span>`;
     }
     const li = items.map((x) => `<li>${x}</li>`).join("");
     return `<div class="story"><div class="story-h">${head}</div><ul>${li}</ul>${foot ? `<div>${foot}</div>` : ""}</div>`;
@@ -1485,11 +1383,11 @@
       $("j-matrix").innerHTML = `<tbody><tr><td class="l">No hay costos: el grafo tiene un ciclo negativo.</td></tr></tbody>`;
       return;
     }
-    $("j-matrix-title").textContent = ph === 4 ? "Costos ajustados entre todos los pares" : "Costos entre todos los pares";
+    $("j-matrix-title").textContent = ph === 4 ? "Costos ajustados entre todos los pares" : "2. Johnson: d(u, v) con el ajuste deshecho";
     $("j-matrix-note").textContent = ph < 4 ? "Se llena en la fase 4, una fila por cada Dijkstra."
       : ph === 4 ? `Fila = de dónde sales. Son costos ajustados (azul); la fila ${nm(cur.src)} se llena mientras corre su Dijkstra y faltan ${jd.n - 1 - cur.src} fila(s) más.`
-      : "Fila = de dónde sales, columna = a dónde llegas. Haz clic en una celda para ver esa ruta. En rojo, donde Dijkstra sin ajustar se equivoca.";
-    $("j-matrix").innerHTML = `<thead><tr><th class="rowh">de \\ a</th>${jd.pos.map((_, v) => `<th>${nm(v)}</th>`).join("")}</tr></thead><tbody>`
+      : "d(u, v) = d′(u, v) − h(u) + h(v) aplicado a cada celda de la matriz 1. En rojo, donde Dijkstra con los pesos originales se habría equivocado.";
+    $("j-matrix").innerHTML = `<thead><tr><th class="rowh">u \\ v</th>${jd.pos.map((_, v) => `<th>${nm(v)}</th>`).join("")}</tr></thead><tbody>`
       + jd.dist.map((row, s) => `<tr class="${ph >= 4 && s === jSrc ? "selrow" : ""}"><th class="rowh">${nm(s)}</th>${row.map((d, t) => {
         if (ph < 4 || (ph === 4 && s > cur.src)) return `<td class="pend">·</td>`;
         if (ph === 4 && s === cur.src) { const x = jDState(s, cur.k).dist[t]; return `<td class="prime">${x === null ? "·" : x}</td>`; }
@@ -1498,6 +1396,22 @@
         return `<td data-s="${s}" data-t="${t}" class="${bad ? "wrong" : ""} ${s === jSrc && t === jTgt ? "sel" : ""}" title="${bad ? `Dijkstra sin ajustar diría ${D(jd.naive[s][t])}` : ""}">${D(d)}</td>`;
       }).join("")}</tr>`).join("") + "</tbody>";
   }
+  // Matriz d′: la distancia final de cada Dijkstra de la fase 4 (pesos ajustados)
+  function jNaive() {
+    if (!jd.h) { $("j-naive").innerHTML = ""; return; }
+    $("j-naive").innerHTML = `<thead><tr><th class="rowh">u \\ v</th>${jd.pos.map((_, v) => `<th>${nm(v)}</th>`).join("")}</tr></thead><tbody>`
+      + jd.dprime.map((row, s) => `<tr class="${s === jSrc ? "selrow" : ""}"><th class="rowh">${nm(s)}</th>${row.map((d, t) =>
+        `<td data-s="${s}" data-t="${t}" class="prime ${s === jSrc && t === jTgt ? "sel" : ""}">${D(d)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+  }
+  $("j-naive").addEventListener("click", (ev) => {
+    const td = ev.target.closest("td[data-s]");
+    if (!td) return;
+    jSrc = +td.dataset.s;
+    jTgt = jSrc === +td.dataset.t ? null : +td.dataset.t;
+    jPlayer.stop();
+    jPlayer.go(jTotal());
+  });
+
   $("j-matrix").addEventListener("click", (ev) => {
     const td = ev.target.closest("td[data-s]");
     if (!td) return;
@@ -1523,19 +1437,19 @@
       jTgt = bad >= 0 ? bad : jd.dist[jSrc].indexOf(Math.max(...jd.dist[jSrc].filter((d) => d !== null)));
     }
     const negs = jd.arcs.filter((a) => a[2] < 0).length, cyc = jd.negativeCycle ? cycleText(jd.negativeCycle, jd.arcs) : null;
-    $("j-title").textContent = "Johnson: rutas entre todos los pares";
+    $("j-title").textContent = "Johnson: caminos entre todos los pares";
     $("j-summary").innerHTML =
-      stat("Grafo original", `${jd.n} · ${jd.arcs.length}`, `ciudades · pesos (${negs} negativo${negs === 1 ? "" : "s"})`)
+      stat("Grafo original", `${jd.n} · ${jd.arcs.length}`, `nodos · pesos (${negs} negativo${negs === 1 ? "" : "s"})`)
       + stat("Pasos", jTotal(), `${jd.hRounds.length} rondas · ${jd.h ? `${jd.arcs.length} ajustes · ${jd.n} Dijkstra` : "se detiene por el ciclo"}`)
       + stat("Dijkstra sin ajustar", jd.h ? (jd.wrongPairs ? `<span class="bad">✗ ${jd.wrongPairs}</span>` : `<span class="ok">✓</span>`) : "–", jd.h ? `pares equivocados de ${jd.n * jd.n}` : "no aplica")
-      + stat("Comprobación", jd.h ? (jd.verified ? `<span class="ok">✓</span>` : `<span class="bad">✗</span>`) : "–", "igual a Bellman-Ford desde cada ciudad");
+      + stat("Comprobación", jd.h ? (jd.verified ? `<span class="ok">✓</span>` : `<span class="bad">✗</span>`) : "–", "igual a Bellman-Ford desde cada nodo");
     $("j-callout").innerHTML = cyc
-      ? `<div class="callout"><b>Ciclo negativo:</b> ${cyc.path} suma ${cyc.sum}. Bellman-Ford desde q lo detecta y Johnson se detiene: no existe ruta más barata.</div>`
+      ? `<div class="callout"><b>Ciclo negativo:</b> ${cyc.path} suma ${cyc.sum}. Bellman-Ford desde q lo detecta y Johnson se detiene: no existe camino más corto.</div>`
       : jd.wrongPairs
-      ? `<div class="callout">Correr Dijkstra desde cada ciudad con los costos originales se equivoca en <b>${jd.wrongPairs}</b> de ${jd.n * jd.n} pares. Johnson lo evita ajustando los costos primero.</div>`
+      ? `<div class="callout">Correr Dijkstra desde cada nodo con los pesos originales se equivoca en <b>${jd.wrongPairs}</b> de ${jd.n * jd.n} pares. Johnson lo evita ajustando los costos primero.</div>`
       : negs
-      ? `<div class="callout good">Aquí Dijkstra sin ajustar acertaría en todos los pares, pero con costos negativos no está garantizado. Usa <i>Buscar caso donde Dijkstra falla</i>.</div>`
-      : `<div class="callout good">Sin costos negativos h = 0 para todas y Johnson es simplemente Dijkstra desde cada ciudad.</div>`;
+      ? `<div class="callout good">Aquí Dijkstra sin ajustar acertaría en todos los pares, pero con costos negativos no está garantizado.</div>`
+      : `<div class="callout good">Sin pesos negativos h = 0 para todos y Johnson es Dijkstra desde cada nodo.</div>`;
     jPlayer.go(0);
   }
 
@@ -1548,123 +1462,8 @@
   $("bf-source").addEventListener("change", () => dirLoad("none"));
   $("bf-n").addEventListener("change", () => fillSource($("bf-source"), Math.max(3, Math.min(26, +$("bf-n").value || 5))));
 
-  // ---------- arreglo vs heap ----------
-  let compareFor = null;
-
-  // Gráfica de líneas con varias series, eje y desde 0, etiqueta al final y tooltip al pasar el mouse
-  function lineChart(el, rows, series, fmt, title) {
-    const W = 460, H = 260, L = 56, R = 92, B = 30, T = 12;
-    const top = Math.max(...rows.flatMap((r) => series.map((s) => s.get(r)))) || 1;
-    // Marcas "redondas": paso de 1, 2 o 5 × 10^k, unas 4 divisiones
-    const raw = top / 4, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
-    const tick = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * mag, maxY = Math.ceil(top / tick) * tick;
-    const maxX = rows.at(-1).n;
-    const x = (n) => L + (n / maxX) * (W - L - R), y = (v) => H - B - (v / maxY) * (H - B - T);
-    const yt = Array.from({ length: Math.round(maxY / tick) + 1 }, (_, i) => i * tick);
-    const xt = rows.filter((r, i) => i === rows.length - 1 || rows.length < 7 || i % 2 === 0);
-    // Etiquetas al final de cada línea, separadas al menos 13 px para que no se encimen
-    // (de abajo hacia arriba, para no bajar ninguna etiqueta hasta el eje x)
-    const ends = series.map((s, i) => ({ i, y: y(s.get(rows.at(-1))) })).sort((a, b) => b.y - a.y);
-    ends.forEach((e, j) => { if (j && ends[j - 1].y - e.y < 13) e.y = ends[j - 1].y - 13; });
-    const endY = Object.fromEntries(ends.map((e) => [e.i, e.y]));
-    const lines = series.map((s, si) => {
-      const d = rows.map((r, i) => `${i ? "L" : "M"}${x(r.n).toFixed(1)},${y(s.get(r)).toFixed(1)}`).join("");
-      const dots = rows.map((r) => `<circle cx="${x(r.n)}" cy="${y(s.get(r))}" r="4" fill="var(${s.color})" stroke="var(--surface)" stroke-width="2"/>`).join("");
-      const last = rows.at(-1);
-      return `<path d="${d}" fill="none" stroke="var(${s.color})" stroke-width="2" stroke-linejoin="round"/>${dots}
-        <text class="endlabel" x="${x(last.n) + 8}" y="${endY[si] + 4}">${s.name}</text>`;
-    }).join("");
-    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${title}">
-      ${yt.map((v) => `<line class="gridline" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><g class="axis"><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v, true)}</text></g>`).join("")}
-      ${xt.map((r) => `<g class="axis"><text x="${x(r.n)}" y="${H - B + 16}" text-anchor="middle">${r.n}</text></g>`).join("")}
-      <g class="axis"><text x="${W - R}" y="${H - 1}" text-anchor="end">V (nodos)</text></g>
-      <line class="baseline" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>
-      <line class="cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>
-      ${lines}
-      <rect class="hit" x="${L}" y="0" width="${W - L - R}" height="${H - B}" fill="transparent"/>
-    </svg><div class="tip" hidden></div>`;
-
-    const svg = el.querySelector("svg"), tip = el.querySelector(".tip"), cross = el.querySelector(".cross");
-    const hide = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); };
-    svg.querySelector(".hit").addEventListener("pointermove", (ev) => {
-      const box = svg.getBoundingClientRect(), sx = W / box.width, px = (ev.clientX - box.left) * sx;
-      const r = rows.reduce((a, b) => Math.abs(x(b.n) - px) < Math.abs(x(a.n) - px) ? b : a);
-      cross.setAttribute("x1", x(r.n)); cross.setAttribute("x2", x(r.n)); cross.setAttribute("visibility", "visible");
-      tip.innerHTML = `<span class="h">V = ${r.n} · E = ${fmtN(r.e)}</span>`
-        + series.map((s) => `<span class="r"><span><i style="background:var(${s.color})"></i>${s.name}</span><b>${fmt(s.get(r))}</b></span>`).join("");
-      tip.hidden = false;
-      const left = x(r.n) / sx, w = tip.offsetWidth;
-      tip.style.left = `${left + 12 + w > box.width ? left - w - 12 : left + 12}px`;
-      tip.style.top = "8px";
-    });
-    svg.querySelector(".hit").addEventListener("pointerleave", hide);
-  }
-
-  const compareParams = () => `kind=${$("kind").value}&maxN=${$("maxN").value}&reps=${+$("reps").value}`;
-
-  async function runCompare() {
-    $("run-compare").disabled = true;
-    $("compare-status").textContent = $("kind").value === "dense" && +$("maxN").value > 1000 ? "Corriendo… (los grafos densos grandes tardan unos segundos)" : "Corriendo…";
-    try {
-      const r = await getJSON(`/api/compare?${compareParams()}`);
-      compareFor = compareParams();
-      const rows = r.rows, last = rows.at(-1);
-      const arrOps = (x) => x.arrayOps.scanned + x.arrayOps.relaxed;
-      const heapOps = (x) => x.heapOps.pushes + x.heapOps.pops + x.heapOps.relaxed;
-      $("compare-status").textContent = `${rows.length} tamaños, mejor de ${r.reps}`;
-      $("compare-summary").innerHTML =
-        stat(`Arreglo con V = ${last.n}`, fmtMs(last.arrayMs), `${fmtN(last.arrayOps.scanned)} nodos revisados`)
-        + stat(`Heap con V = ${last.n}`, fmtMs(last.heapMs), `${fmtN(last.heapOps.pushes + last.heapOps.pops)} operaciones del heap`)
-        + stat("Arreglo / heap", `<span class="${last.arrayMs > last.heapMs ? "ok" : "bad"}">${(last.arrayMs / last.heapMs).toFixed(1)}×</span>`, `${last.arrayMs > last.heapMs ? "el heap es más rápido" : "el arreglo es más rápido"} en el grafo más grande`)
-        + stat(`Bellman-Ford con V = ${last.n}`, fmtMs(last.bfMs), `${last.bfOps.rounds} rondas · ${fmtN(last.bfOps.relaxed)} relajaciones`)
-        + stat("Mismas distancias", rows.every((x) => x.same) ? `<span class="ok">✓</span>` : `<span class="bad">✗</span>`, "las tres versiones, en todos los tamaños");
-      lineChart($("time-chart"), rows, [
-        { name: "arreglo", color: "--brute", get: (x) => x.arrayMs },
-        { name: "heap", color: "--memo", get: (x) => x.heapMs },
-        { name: "Bellman-Ford", color: "--bf", get: (x) => x.bfMs },
-      ], (v, axis) => axis ? (v >= 1000 ? `${+(v / 1000).toFixed(2)} s` : `${+v.toFixed(2)} ms`) : fmtMs(v), "Tiempo contra número de nodos");
-      lineChart($("ops-chart"), rows, [
-        { name: "arreglo", color: "--brute", get: arrOps },
-        { name: "heap", color: "--memo", get: heapOps },
-        { name: "Bellman-Ford", color: "--bf", get: (x) => x.bfOps.relaxed },
-      ], (v, axis) => axis ? (v >= 1e6 ? `${+(v / 1e6).toFixed(2)} M` : v >= 1e3 ? `${+(v / 1e3).toFixed(1)} k` : v.toFixed(0)) : fmtN(Math.round(v)), "Operaciones contra número de nodos");
-      $("compare-rows").innerHTML = rows.map((x) => `<tr><td>${x.n}</td><td>${fmtN(x.e)}</td><td>${fmtMs(x.arrayMs)}</td><td>${fmtMs(x.heapMs)}</td><td>${fmtMs(x.bfMs)}</td>`
-        + `<td>${(x.arrayMs / x.heapMs).toFixed(1)}×</td><td>${fmtN(x.arrayOps.scanned)}</td><td>${fmtN(x.heapOps.pushes + x.heapOps.pops)}</td><td>${fmtN(x.heapOps.stale)}</td><td>${x.bfOps.rounds}</td>`
-        + `<td>${x.same ? "✓" : "✗"}</td></tr>`).join("");
-    } catch (e) {
-      $("compare-status").textContent = "";
-      $("compare-summary").innerHTML = `<div class="error-box">No se pudo calcular: ${esc(e.message)}</div>`;
-    } finally {
-      $("run-compare").disabled = false;
-    }
-  }
-  $("run-compare").addEventListener("click", runCompare);
-  for (const id of ["kind", "maxN"]) $(id).addEventListener("change", runCompare);
-
-  // ---------- pruebas ----------
-  async function runTests() {
-    $("run-tests").disabled = true;
-    $("tests-note").textContent = "Ejecutando pruebas…";
-    $("tests").innerHTML = "";
-    try {
-      const t = await getJSON("/api/tests", { method: "POST" });
-      const bad = t.failed + t.errors;
-      $("tests-note").textContent = `${t.passed} de ${t.ran} aprobadas` + (bad ? `, ${t.failed} fallidas, ${t.errors} con error` : "") + ` en ${fmtMs(t.elapsedMs)}.`;
-      const order = { error: 0, failed: 1, passed: 2 };
-      $("tests").innerHTML = [...t.tests].sort((a, b) => order[a.status] - order[b.status]).map((e) => `
-        <div><div class="t"><span class="badge ${e.status}">${{ passed: "aprobada", failed: "falló", error: "error" }[e.status]}</span>
-        <span>${esc(e.title)}</span><span class="cls">${esc(e.group)}</span></div>
-        ${e.detail ? `<pre>${esc(e.detail)}</pre>` : ""}</div>`).join("");
-    } catch (e) {
-      $("tests-note").textContent = `No se pudieron ejecutar las pruebas: ${e.message}`;
-    } finally {
-      $("run-tests").disabled = false;
-    }
-  }
-  $("run-tests").addEventListener("click", runTests);
-
   // ---------- pestañas ----------
-  const TABS = { steps: "#", bellman: "#bellman-ford", johnson: "#johnson", compare: "#comparar", tests: "#pruebas" };  // pestaña -> hash de la URL
+  const TABS = { steps: "#", bellman: "#bellman-ford", johnson: "#johnson" };  // pestaña -> hash de la URL
 
   let current = "steps";
   function showTab(name) {
@@ -1680,8 +1479,6 @@
     $("dir-controls").hidden = name !== "bellman" && name !== "johnson";
     if (name === "bellman" && bfFor !== dirParams()) bfLoad();
     if (name === "johnson" && jFor !== dirParams()) jLoad();
-    if (name === "compare" && compareFor !== compareParams()) runCompare();
-    if (name === "tests" && !$("tests").children.length) runTests();
   }
   for (const t of Object.keys(TABS)) $(`tab-btn-${t}`).addEventListener("click", () => showTab(t));
 
@@ -1689,24 +1486,6 @@
   $("reseed").addEventListener("click", () => { $("seed").value = Math.floor(Math.random() * 100000); loadRun(); });
   for (const id of ["n", "neighbors", "seed", "source"]) $(id).addEventListener("keydown", (ev) => { if (ev.key === "Enter") loadRun(); });
 
-  // ---------- modo noche ----------
-  const darkQuery = matchMedia("(prefers-color-scheme: dark)");
-  const isDark = () => {
-    const t = document.documentElement.dataset.theme;
-    return t ? t === "dark" : darkQuery.matches;
-  };
-  function syncThemeSwitch() {
-    $("theme-toggle").setAttribute("aria-checked", String(isDark()));
-    $("theme-icon").textContent = isDark() ? "☾" : "☀";
-  }
-  $("theme-toggle").addEventListener("click", () => {
-    const next = isDark() ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem("theme", next); } catch (e) {}
-    syncThemeSwitch();
-  });
-  darkQuery.addEventListener("change", syncThemeSwitch);
-  syncThemeSwitch();
 
   loadRun();
   const fromHash = Object.keys(TABS).find((t) => TABS[t] === location.hash && t !== "steps");

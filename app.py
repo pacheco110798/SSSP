@@ -1,15 +1,11 @@
-import io
 import math
-import random
-import time
-import unittest
 from pathlib import Path
 
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
 
-from dijkstra import (adjacency, bellmanFord, bellmanFordOps, bellmanFordSteps, dijkstraArray, dijkstraHeap,
-                      dijkstraSteps, generateDirected, generateGraph, johnson, randomGraph)
+from dijkstra import (adjacency, bellmanFord, bellmanFordSteps, dijkstraArray, dijkstraSteps, generateDirected,
+                      generateGraph, johnson)
 
 STATIC = Path(__file__).parent / "static"
 MAX_N = 26  # una letra por nodo (A–Z)
@@ -60,42 +56,6 @@ def apiRun(n: int = Query(5, ge=3, le=MAX_N), neighbors: int = Query(2, ge=1, le
         "stale": sum(s["type"] == "stale" for s in steps),
         "improved": sum(r["better"] for s in steps for r in s["relax"]),
     }
-
-
-SIZES = [50, 100, 200, 400, 600, 800, 1000, 1500, 2000]
-DENSITY = {"sparse": lambda n: 4 / n, "dense": lambda n: 0.5}
-
-
-@app.get("/api/compare")
-def apiCompare(kind: str = Query("sparse", pattern="^(sparse|dense)$"),
-               maxN: int = Query(1000, ge=100, le=2000), reps: int = Query(3, ge=1, le=10)):
-    """Arreglo contra heap en grafos de varios tamaños: tiempo (mejor de `reps`) y operaciones."""
-    rows = []
-    for n in [s for s in SIZES if s <= maxN]:
-        adj = randomGraph(n, DENSITY[kind](n), seed=n)
-        order = list(range(n))
-        random.Random(n).shuffle(order)  # Bellman-Ford recorre los nodos en un orden fijo pero revuelto
-        times = {}
-        algos = (("array", dijkstraArray), ("heap", dijkstraHeap), ("bf", lambda a, s: bellmanFordOps(a, s, order)))
-        for name, algo in algos:
-            best = math.inf
-            for _ in range(reps):
-                t0 = time.perf_counter()
-                dist, _, ops = algo(adj, 0)
-                best = min(best, time.perf_counter() - t0)
-            times[name] = (best * 1000, dist, ops)
-        rows.append({
-            "n": n,
-            "e": sum(len(r) for r in adj),
-            "arrayMs": times["array"][0],
-            "heapMs": times["heap"][0],
-            "bfMs": times["bf"][0],
-            "same": times["array"][1] == times["heap"][1] == times["bf"][1],
-            "arrayOps": times["array"][2],
-            "heapOps": times["heap"][2],
-            "bfOps": times["bf"][2],
-        })
-    return {"kind": kind, "reps": reps, "rows": rows}
 
 
 def bellmanCase(n, neighbors, seed, source, negatives):
@@ -190,40 +150,3 @@ def apiJohnson(n: int = Query(5, ge=3, le=MAX_N), neighbors: int = Query(2, ge=1
             "verified": all(bellmanFord(n, arcs, s, directed=True) == res["dist"][s] for s in range(n)),
         })
     return out
-
-
-class _Collect(unittest.TextTestResult):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.passed = []
-
-    def addSuccess(self, test):
-        super().addSuccess(test)
-        self.passed.append(test)
-
-
-@app.post("/api/tests")
-def apiTests():
-    suite = unittest.defaultTestLoader.loadTestsFromNames(["test_dijkstra"])
-    stream = io.StringIO()
-    t0 = time.perf_counter()
-    result = unittest.TextTestRunner(stream=stream, resultclass=_Collect, verbosity=0).run(suite)
-    elapsed = time.perf_counter() - t0
-
-    def entry(test, status, detail=""):
-        cls, _, name = test.id().rpartition(".")
-        group = (type(test).__doc__ or "").strip() or cls.rsplit(".", 1)[-1]
-        return {"class": cls.rsplit(".", 1)[-1], "name": name, "title": test.shortDescription() or name,
-                "group": group, "status": status, "detail": detail}
-
-    tests = ([entry(t, "passed") for t in result.passed]
-             + [entry(t, "failed", tb) for t, tb in result.failures]
-             + [entry(t, "error", tb) for t, tb in result.errors])
-    return {
-        "ran": result.testsRun,
-        "passed": len(result.passed),
-        "failed": len(result.failures),
-        "errors": len(result.errors),
-        "elapsedMs": elapsed * 1000,
-        "tests": tests,
-    }
