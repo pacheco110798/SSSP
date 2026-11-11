@@ -1,0 +1,229 @@
+import io
+import math
+import random
+import time
+import unittest
+from pathlib import Path
+
+from fastapi import FastAPI, Query
+from fastapi.responses import FileResponse
+
+from dijkstra import (adjacency, bellmanFord, bellmanFordOps, bellmanFordSteps, dijkstraArray, dijkstraHeap,
+                      dijkstraSteps, generateDirected, generateGraph, johnson, randomGraph)
+
+STATIC = Path(__file__).parent / "static"
+MAX_N = 26  # una letra por nodo (A–Z)
+
+app = FastAPI(title="Dijkstra, Bellman-Ford y Johnson: caminos más cortos")
+
+
+def finite(xs):
+    """JSON no acepta infinito: ∞ se manda como null."""
+    return [None if x == math.inf else x for x in xs]
+
+
+def cleanSteps(steps):
+    """Pasos de dijkstraSteps listos para JSON (∞ → null)."""
+    for s in steps:
+        s["dist"] = finite(s["dist"])
+        for r in s["relax"]:
+            r["old"] = None if r["old"] == math.inf else r["old"]
+    return steps
+
+
+def clean(d):
+    """Copia de un dict con ∞ cambiado por null en sus valores numéricos."""
+    return {k: None if isinstance(x, float) and x == math.inf else x for k, x in d.items()}
+
+
+@app.get("/")
+def index():
+    # Sin caché, para que el navegador siempre cargue la versión actual de la página
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/run")
+def apiRun(n: int = Query(5, ge=3, le=MAX_N), neighbors: int = Query(2, ge=1, le=4),
+           seed: int = Query(0, ge=0), source: int = Query(0, ge=0)):
+    """El grafo de (n, neighbors, seed) y Dijkstra con heap desde `source`, paso a paso."""
+    source = min(source, n - 1)
+    pos, edges = generateGraph(n, neighbors, seed)
+    steps = cleanSteps(dijkstraSteps(adjacency(n, edges), source))
+    return {
+        "n": n,
+        "neighbors": neighbors,
+        "seed": seed,
+        "source": source,
+        "pos": pos,
+        "edges": edges,
+        "steps": steps,
+        "stale": sum(s["type"] == "stale" for s in steps),
+        "improved": sum(r["better"] for s in steps for r in s["relax"]),
+    }
+
+
+SIZES = [50, 100, 200, 400, 600, 800, 1000, 1500, 2000]
+DENSITY = {"sparse": lambda n: 4 / n, "dense": lambda n: 0.5}
+
+
+@app.get("/api/compare")
+def apiCompare(kind: str = Query("sparse", pattern="^(sparse|dense)$"),
+               maxN: int = Query(1000, ge=100, le=2000), reps: int = Query(3, ge=1, le=10)):
+    """Arreglo contra heap en grafos de varios tamaños: tiempo (mejor de `reps`) y operaciones."""
+    rows = []
+    for n in [s for s in SIZES if s <= maxN]:
+        adj = randomGraph(n, DENSITY[kind](n), seed=n)
+        order = list(range(n))
+        random.Random(n).shuffle(order)  # Bellman-Ford recorre los nodos en un orden fijo pero revuelto
+        times = {}
+        algos = (("array", dijkstraArray), ("heap", dijkstraHeap), ("bf", lambda a, s: bellmanFordOps(a, s, order)))
+        for name, algo in algos:
+            best = math.inf
+            for _ in range(reps):
+                t0 = time.perf_counter()
+                dist, _, ops = algo(adj, 0)
+                best = min(best, time.perf_counter() - t0)
+            times[name] = (best * 1000, dist, ops)
+        rows.append({
+            "n": n,
+            "e": sum(len(r) for r in adj),
+            "arrayMs": times["array"][0],
+            "heapMs": times["heap"][0],
+            "bfMs": times["bf"][0],
+            "same": times["array"][1] == times["heap"][1] == times["bf"][1],
+            "arrayOps": times["array"][2],
+            "heapOps": times["heap"][2],
+            "bfOps": times["bf"][2],
+        })
+    return {"kind": kind, "reps": reps, "rows": rows}
+
+
+def bellmanCase(n, neighbors, seed, source, negatives):
+    """Grafo dirigido, Bellman-Ford ronda por ronda y lo que diría Dijkstra en el mismo grafo."""
+    pos, arcs = generateDirected(n, neighbors, seed, source, negatives)
+    run = bellmanFordSteps(n, arcs, source)
+    dijkstra = dijkstraArray(adjacency(n, arcs, directed=True), source)[0]
+    final = run["rounds"][-1]["dist"]
+    wrong = [] if run["negativeCycle"] else [v for v in range(n) if dijkstra[v] != final[v]]
+    return pos, arcs, run, dijkstra, wrong
+
+
+@app.get("/api/bellman")
+def apiBellman(n: int = Query(5, ge=3, le=MAX_N), neighbors: int = Query(2, ge=1, le=4),
+               seed: int = Query(0, ge=0), source: int = Query(0, ge=0), negatives: int = Query(1, ge=0, le=8),
+               find: str = Query("none", pattern="^(none|fail|cycle)$")):
+    """Bellman-Ford en un grafo dirigido con `negatives` arcos negativos.
+
+    Con find = fail | cycle busca, desde `seed` en adelante, la primera semilla donde Dijkstra se
+    equivoca o donde hay un ciclo negativo."""
+    source = min(source, n - 1)
+    negatives = max(negatives, 1) if find != "none" else negatives
+    for s in range(seed, seed + (3000 if find != "none" else 1)):
+        pos, arcs, run, dijkstra, wrong = bellmanCase(n, neighbors, s, source, negatives)
+        if find == "none" or (find == "fail" and wrong) or (find == "cycle" and run["negativeCycle"]):
+            break
+    else:
+        return {"found": False}
+    for r in run["rounds"]:
+        r["dist"] = finite(r["dist"])
+        for m in r["improved"]:
+            m["old"] = None if m["old"] == math.inf else m["old"]
+        r["checks"] = [clean(c) for c in r["checks"]]
+    return {
+        "found": True,
+        "n": n,
+        "neighbors": neighbors,
+        "seed": s,
+        "source": source,
+        "negatives": negatives,
+        "pos": pos,
+        "arcs": arcs,
+        "rounds": run["rounds"],
+        "negativeCycle": run["negativeCycle"],
+        "dijkstra": finite(dijkstra),
+        "wrong": wrong,
+    }
+
+
+def johnsonCase(n, neighbors, seed, source, negatives):
+    """Johnson en el grafo dirigido y, para comparar, Dijkstra directo (sin reponderar) desde cada nodo."""
+    pos, arcs = generateDirected(n, neighbors, seed, source, negatives)
+    res = johnson(n, arcs)
+    adj = adjacency(n, arcs, directed=True)
+    naive = [dijkstraArray(adj, s)[0] for s in range(n)]
+    wrong = 0 if res["h"] is None else sum(naive[s][v] != res["dist"][s][v] for s in range(n) for v in range(n))
+    return pos, arcs, res, naive, wrong
+
+
+@app.get("/api/johnson")
+def apiJohnson(n: int = Query(5, ge=3, le=MAX_N), neighbors: int = Query(2, ge=1, le=4),
+               seed: int = Query(0, ge=0), source: int = Query(0, ge=0), negatives: int = Query(1, ge=0, le=8),
+               find: str = Query("none", pattern="^(none|fail|cycle)$")):
+    """Johnson (todos los pares) en el mismo grafo dirigido que /api/bellman.
+
+    Con find = fail | cycle busca la primera semilla desde `seed` donde Dijkstra directo se
+    equivoca en algún par o donde hay un ciclo negativo."""
+    source = min(source, n - 1)
+    negatives = max(negatives, 1) if find != "none" else negatives
+    for s in range(seed, seed + (3000 if find != "none" else 1)):
+        pos, arcs, res, naive, wrong = johnsonCase(n, neighbors, s, source, negatives)
+        if find == "none" or (find == "fail" and wrong) or (find == "cycle" and res["negativeCycle"]):
+            break
+    else:
+        return {"found": False}
+    out = {"found": True, "n": n, "neighbors": neighbors, "seed": s, "source": source, "negatives": negatives,
+           "pos": pos, "arcs": arcs, "h": res["h"], "bfRounds": res["bfRounds"],
+           "negativeCycle": res["negativeCycle"], "naive": [finite(r) for r in naive], "wrongPairs": wrong,
+           "hRounds": [{"h": finite(r["h"]),
+                        # u = None: el arco viene de q
+                        "improved": [clean({**m, "u": None if m["u"] == n else m["u"]}) for m in r["improved"]],
+                        "checks": [clean({**c, "u": None if c["u"] == n else c["u"]}) for c in r["checks"]]}
+                       for r in res["hRounds"]]}
+    if res["h"] is not None:
+        out.update({
+            "reweighted": res["reweighted"],
+            "dprime": [finite(r) for r in res["dprime"]],
+            "dist": [finite(r) for r in res["dist"]],
+            "prev": res["prev"],
+            "dSteps": [cleanSteps(st) for st in res["dSteps"]],
+            # Comprobación: Bellman-Ford desde cada nodo con los pesos originales
+            "verified": all(bellmanFord(n, arcs, s, directed=True) == res["dist"][s] for s in range(n)),
+        })
+    return out
+
+
+class _Collect(unittest.TextTestResult):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.passed = []
+
+    def addSuccess(self, test):
+        super().addSuccess(test)
+        self.passed.append(test)
+
+
+@app.post("/api/tests")
+def apiTests():
+    suite = unittest.defaultTestLoader.loadTestsFromNames(["test_dijkstra"])
+    stream = io.StringIO()
+    t0 = time.perf_counter()
+    result = unittest.TextTestRunner(stream=stream, resultclass=_Collect, verbosity=0).run(suite)
+    elapsed = time.perf_counter() - t0
+
+    def entry(test, status, detail=""):
+        cls, _, name = test.id().rpartition(".")
+        group = (type(test).__doc__ or "").strip() or cls.rsplit(".", 1)[-1]
+        return {"class": cls.rsplit(".", 1)[-1], "name": name, "title": test.shortDescription() or name,
+                "group": group, "status": status, "detail": detail}
+
+    tests = ([entry(t, "passed") for t in result.passed]
+             + [entry(t, "failed", tb) for t, tb in result.failures]
+             + [entry(t, "error", tb) for t, tb in result.errors])
+    return {
+        "ran": result.testsRun,
+        "passed": len(result.passed),
+        "failed": len(result.failures),
+        "errors": len(result.errors),
+        "elapsedMs": elapsed * 1000,
+        "tests": tests,
+    }
